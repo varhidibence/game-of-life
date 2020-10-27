@@ -7,8 +7,11 @@ import javafx.scene.Group
 import javafx.scene.Scene
 import javafx.scene.canvas.Canvas
 import javafx.scene.canvas.GraphicsContext
+import javafx.scene.control.Button
 import javafx.scene.image.Image
 import javafx.scene.input.KeyCode
+import javafx.scene.layout.HBox
+import javafx.scene.layout.TilePane
 import javafx.scene.paint.Color
 import javafx.stage.Stage
 
@@ -25,9 +28,6 @@ class Game : Application() {
     private lateinit var space: Image
     private lateinit var sun: Image
 
-    private var sunX = WIDTH / 2
-    private var sunY = HEIGHT / 2
-
     private var lastFrameTime: Long = System.nanoTime()
 
     // use a set so duplicates are not possible
@@ -40,8 +40,19 @@ class Game : Application() {
         mainScene = Scene(root)
         mainStage.scene = mainScene
 
+        val hbox = HBox()
+        hbox.spacing = 10.0
+
+        val startButton = Button("start")
+        val stopButton = Button("stop")
+
+        hbox.children.add(startButton)
+        hbox.children.add(stopButton)
+
         val canvas = Canvas(WIDTH.toDouble(), HEIGHT.toDouble())
         root.children.add(canvas)
+        root.children.add(hbox)
+
 
         prepareActionHandlers()
 
@@ -88,10 +99,10 @@ class Game : Application() {
         graphicsContext.drawImage(space, 0.0, 0.0)
 
         // perform world updates
-        updateSunPosition()
+
 
         // draw sun
-        graphicsContext.drawImage(sun, sunX.toDouble(), sunY.toDouble())
+        //graphicsContext.drawImage(sun, sunX.toDouble(), sunY.toDouble())
 
         // display crude fps counter
         val elapsedMs = elapsedNanos / 1_000_000
@@ -101,19 +112,6 @@ class Game : Application() {
         }
     }
 
-    private fun updateSunPosition() {
-        if (currentlyActiveKeys.contains(KeyCode.LEFT)) {
-            sunX--
-        }
-        if (currentlyActiveKeys.contains(KeyCode.RIGHT)) {
-            sunX++
-        }
-        if (currentlyActiveKeys.contains(KeyCode.UP)) {
-            sunY--
-        }
-        if (currentlyActiveKeys.contains(KeyCode.DOWN)) {
-            sunY++
-        }
-    }
+
 
 }
