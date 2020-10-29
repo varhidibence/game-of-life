@@ -1,6 +1,7 @@
 package com.example
 
 import javafx.animation.AnimationTimer
+import javafx.animation.Timeline
 import javafx.application.Application
 import javafx.event.EventHandler
 import javafx.scene.Group
@@ -23,17 +24,19 @@ class Game : Application() {
         private const val HEIGHT = 600
     }
 
+    private lateinit var stopButton: Button
+    private lateinit var startButton: Button
+    private lateinit var resetButton: Button
     private lateinit var mainScene: Scene
     private lateinit var graphicsContext: GraphicsContext
 
     private lateinit var space: Image
 
+    private var board = Array(5){ IntArray(5)}
+
+    private lateinit var timer: AnimationTimer
     private var running = false
-
-
-    private var board = Array(100){ IntArray(100)}
-
-    private var lastFrameTime: Long = System.currentTimeMillis()
+    private var lastFrameTime: Long = System.nanoTime()
     private var lastUpdated = lastFrameTime
     private val fps = 5
 
@@ -49,34 +52,16 @@ class Game : Application() {
 
         val controlBox = HBox()
         controlBox.spacing = 10.0
-        val startButton = Button("start")
-        val stopButton = Button("stop")
-        val resetButton = Button("reset")
+        startButton = Button("start")
+        stopButton = Button("stop")
+        resetButton = Button("reset")
 
-        class Timertask: TimerTask(){
-            override fun run() {
-                tickAndRender(System.currentTimeMillis())
-            }
-
-        }
-        var task = Timertask()
-        var timer = Timer()
-
-        startButton.onAction = EventHandler { event ->
-            if (!running) {
-                timer = Timer()
-                task = Timertask()
-                timer.schedule(task,1)
-                running = true
+         timer = object : AnimationTimer() {
+            override fun handle(currentNanoTime: Long) {
+                tickAndRender(currentNanoTime)
             }
         }
 
-        stopButton.onAction = EventHandler { event ->
-            if (running){
-                timer.cancel()
-                running = false
-            }
-        }
 
         controlBox.children.add(startButton)
         controlBox.children.add(stopButton)
@@ -88,7 +73,12 @@ class Game : Application() {
         root.children.add(canvas)
         root.children.add(controlBox)
 
-        randomize()
+        //randomize()
+
+        for (i in 2..2){
+            for (j in 1..3)
+                board[i][j] = 1
+        }
 
         prepareActionHandlers()
 
@@ -112,7 +102,7 @@ class Game : Application() {
     }
 
     private fun drawBoard(startX: Double, startY: Double){
-        val cellSize = 5.0
+        val cellSize = 10.0
 
         graphicsContext.stroke = Color.BLACK
         graphicsContext.fill = Color.BLACK
@@ -129,7 +119,7 @@ class Game : Application() {
     }
 
     private fun nextGeneration():Array<IntArray>{
-        val next = board.clone()
+        val next = Array(5){ IntArray(5)}
         val height = board.size
         val width = board[0].size
 
@@ -141,7 +131,8 @@ class Game : Application() {
                 var aliveNeighbours = 0
                 for (i in -1..1){
                     for (j in -1..1){
-                        aliveNeighbours += board[row + i][col + j]
+                        val value = board[row + i][col + j]
+                        aliveNeighbours += value
                     }
                 }
 
@@ -150,7 +141,7 @@ class Game : Application() {
 
                 next[row][col] = when {
                     //Any live cell with two or three live neighbours survives.
-                    board[row][col] == 1 && (aliveNeighbours == 2 || aliveNeighbours == 3) -> 0
+                    board[row][col] == 1 && (aliveNeighbours == 2 || aliveNeighbours == 3) -> 1
                     //Any dead cell with three live neighbours becomes a live cell.
                     board[row][col] == 0 && aliveNeighbours == 3 -> 1
                     //All other live cells die in the next generation. Similarly, all other dead cells stay dead.
@@ -163,8 +154,17 @@ class Game : Application() {
     }
 
     private fun prepareActionHandlers() {
-        mainScene.onKeyPressed = EventHandler { event ->
-            currentlyActiveKeys.add(event.code)
+        startButton.onAction = EventHandler { event ->
+            if (!running) {
+                timer.start()
+                running = true
+            }
+        }
+        stopButton.onAction = EventHandler { event ->
+            if (running){
+                timer.stop()
+                running = false
+            }
         }
 
     }
@@ -180,6 +180,8 @@ class Game : Application() {
         val elapsedNanos = currentNanoTime - lastFrameTime
         lastFrameTime = currentNanoTime
 
+
+
         // clear canvas
         graphicsContext.clearRect(0.0, 0.0, WIDTH.toDouble(), HEIGHT.toDouble())
 
@@ -187,7 +189,7 @@ class Game : Application() {
         drawBoard(50.0, 50.0)
 
         // perform world updates
-        if (currentNanoTime - lastUpdated > fps * 1_000) {
+        if (currentNanoTime - lastUpdated > fps * 100_000_000) {
             println(currentNanoTime - lastUpdated)
             board = nextGeneration()
             lastUpdated = currentNanoTime
