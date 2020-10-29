@@ -14,7 +14,9 @@ import javafx.scene.input.KeyCode
 import javafx.scene.layout.HBox
 import javafx.scene.paint.Color
 import javafx.stage.Stage
+import java.awt.Rectangle
 import java.util.*
+import kotlin.math.floor
 import kotlin.random.Random
 
 class Game : Application() {
@@ -22,6 +24,12 @@ class Game : Application() {
     companion object {
         private const val WIDTH = 800
         private const val HEIGHT = 600
+        private const val BOARD_W = 40
+        private const val BOARD_H = 40
+        private const val startX = 50.0
+        private const val startY = 50.0
+        private const val cellSize = 15.0
+
     }
 
     private lateinit var stopButton: Button
@@ -32,13 +40,13 @@ class Game : Application() {
 
     private lateinit var space: Image
 
-    private var board = Array(5){ IntArray(5)}
+    private var board = Array(BOARD_H){ IntArray(BOARD_W)}
 
     private lateinit var timer: AnimationTimer
     private var running = false
     private var lastFrameTime: Long = System.nanoTime()
     private var lastUpdated = lastFrameTime
-    private val fps = 5
+    private val fps = 10
 
     // use a set so duplicates are not possible
     private val currentlyActiveKeys = mutableSetOf<KeyCode>()
@@ -83,7 +91,7 @@ class Game : Application() {
         prepareActionHandlers()
 
         graphicsContext = canvas.graphicsContext2D
-        drawBoard(50.0, 50.0)
+        drawBoard(startX, startY)
 
         loadGraphics()
 
@@ -102,7 +110,6 @@ class Game : Application() {
     }
 
     private fun drawBoard(startX: Double, startY: Double){
-        val cellSize = 10.0
 
         graphicsContext.stroke = Color.BLACK
         graphicsContext.fill = Color.BLACK
@@ -119,7 +126,7 @@ class Game : Application() {
     }
 
     private fun nextGeneration():Array<IntArray>{
-        val next = Array(5){ IntArray(5)}
+        val next = Array(BOARD_H){ IntArray(BOARD_W)}
         val height = board.size
         val width = board[0].size
 
@@ -167,6 +174,28 @@ class Game : Application() {
             }
         }
 
+        resetButton.onAction = EventHandler { event ->
+            running = false
+            board = Array(BOARD_H){ IntArray(BOARD_W)}
+            graphicsContext.clearRect(0.0, 0.0, WIDTH.toDouble(), HEIGHT.toDouble())
+            drawBoard(startX, startY)
+            timer.stop()
+        }
+
+        mainScene.onMouseClicked = EventHandler { event ->
+            if (!running){
+                val area = Rectangle(startX.toInt(), startY.toInt(), (board.size*cellSize).toInt(), (board.size*cellSize).toInt())
+                if (area.contains(event.x, event.y)){
+                    val colNth = floor((event.x - startX) / cellSize).toInt()
+                    val rowNth = floor((event.y - startY) / cellSize).toInt()
+                    println("Mouse clicked: ${rowNth}, ${colNth}")
+                    if (rowNth >= 0 && rowNth < board.size && colNth >= 0 && colNth < board.size)
+                        board[rowNth][colNth] = 1
+                    graphicsContext.clearRect(0.0, 0.0, WIDTH.toDouble(), HEIGHT.toDouble())
+                    drawBoard(startX, startY)
+                }
+            }
+        }
     }
 
     private fun loadGraphics() {
@@ -180,13 +209,11 @@ class Game : Application() {
         val elapsedNanos = currentNanoTime - lastFrameTime
         lastFrameTime = currentNanoTime
 
-
-
         // clear canvas
         graphicsContext.clearRect(0.0, 0.0, WIDTH.toDouble(), HEIGHT.toDouble())
 
         //graphicsContext.drawImage(space, 0.0, 0.0)
-        drawBoard(50.0, 50.0)
+        drawBoard(startX, startY)
 
         // perform world updates
         if (currentNanoTime - lastUpdated > fps * 100_000_000) {
