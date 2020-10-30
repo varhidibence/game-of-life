@@ -23,7 +23,7 @@ class Game : Application() {
 
     companion object {
         private const val WIDTH = 800
-        private const val HEIGHT = 600
+        private const val HEIGHT = 700
         private const val BOARD_W = 40
         private const val BOARD_H = 40
         private const val startX = 50.0
@@ -32,13 +32,13 @@ class Game : Application() {
 
     }
 
-    private lateinit var stopButton: Button
-    private lateinit var startButton: Button
-    private lateinit var resetButton: Button
     private lateinit var mainScene: Scene
     private lateinit var graphicsContext: GraphicsContext
 
-    private lateinit var space: Image
+    private lateinit var stopButton: Button
+    private lateinit var startButton: Button
+    private lateinit var resetButton: Button
+    private lateinit var randButton: Button
 
     private var board = Array(BOARD_H){ IntArray(BOARD_W)}
 
@@ -46,10 +46,8 @@ class Game : Application() {
     private var running = false
     private var lastFrameTime: Long = System.nanoTime()
     private var lastUpdated = lastFrameTime
-    private val fps = 10
-
-    // use a set so duplicates are not possible
-    private val currentlyActiveKeys = mutableSetOf<KeyCode>()
+    private val fps = 4
+    private var initialSeed = 50
 
     override fun start(mainStage: Stage) {
         mainStage.title = "Game of Life"
@@ -63,6 +61,7 @@ class Game : Application() {
         startButton = Button("start")
         stopButton = Button("stop")
         resetButton = Button("reset")
+        randButton = Button("randomize")
 
          timer = object : AnimationTimer() {
             override fun handle(currentNanoTime: Long) {
@@ -74,14 +73,14 @@ class Game : Application() {
         controlBox.children.add(startButton)
         controlBox.children.add(stopButton)
         controlBox.children.add(resetButton)
+        controlBox.children.add(randButton)
 
         val canvas = Canvas(WIDTH.toDouble(), HEIGHT.toDouble())
-
 
         root.children.add(canvas)
         root.children.add(controlBox)
 
-        //randomize()
+        randomize()
 
         for (i in 2..2){
             for (j in 1..3)
@@ -91,17 +90,14 @@ class Game : Application() {
         prepareActionHandlers()
 
         graphicsContext = canvas.graphicsContext2D
+
+        // Initial drawing
         drawBoard(startX, startY)
-
-        loadGraphics()
-
-        // Main loop
-
         mainStage.show()
     }
 
     private fun randomize() {
-        val rand = Random(500)
+        val rand = Random(initialSeed++)
         for (row in 0 until board.size) {
             for (col in 0 until board[row].size) {
                 board[row][col] = (rand.nextInt() % 2)
@@ -177,8 +173,15 @@ class Game : Application() {
         resetButton.onAction = EventHandler { event ->
             running = false
             board = Array(BOARD_H){ IntArray(BOARD_W)}
-            graphicsContext.clearRect(0.0, 0.0, WIDTH.toDouble(), HEIGHT.toDouble())
-            drawBoard(startX, startY)
+            repaint()
+            timer.stop()
+        }
+
+        randButton.onAction = EventHandler { event ->
+            running = false
+            board = Array(BOARD_H) { IntArray(BOARD_W) }
+            randomize()
+            repaint()
             timer.stop()
         }
 
@@ -190,46 +193,36 @@ class Game : Application() {
                     val rowNth = floor((event.y - startY) / cellSize).toInt()
                     println("Mouse clicked: ${rowNth}, ${colNth}")
                     if (rowNth >= 0 && rowNth < board.size && colNth >= 0 && colNth < board.size)
-                        board[rowNth][colNth] = 1
-                    graphicsContext.clearRect(0.0, 0.0, WIDTH.toDouble(), HEIGHT.toDouble())
-                    drawBoard(startX, startY)
+                        board[rowNth][colNth] = when (board[rowNth][colNth]){
+                            0 -> 1
+                            else -> 0
+                        }
+                    repaint()
                 }
             }
         }
     }
 
-    private fun loadGraphics() {
-        // prefixed with / to indicate that the files are
-        // in the root of the "resources" folder
-        space = Image(getResource("/space.png"))
+    private fun repaint(){
+        // clear canvas
+        graphicsContext.clearRect(0.0, 0.0, WIDTH.toDouble(), HEIGHT.toDouble())
+        drawBoard(startX, startY)
     }
 
     private fun tickAndRender(currentNanoTime: Long) {
-        // the time elapsed since the last frame, in miliseconds
+        // the time elapsed since the last frame, in nanoseconds
         val elapsedNanos = currentNanoTime - lastFrameTime
         lastFrameTime = currentNanoTime
 
-        // clear canvas
-        graphicsContext.clearRect(0.0, 0.0, WIDTH.toDouble(), HEIGHT.toDouble())
-
-        //graphicsContext.drawImage(space, 0.0, 0.0)
-        drawBoard(startX, startY)
-
-        // perform world updates
-        if (currentNanoTime - lastUpdated > fps * 100_000_000) {
-            println(currentNanoTime - lastUpdated)
+        // perform board updates
+        if (currentNanoTime - lastUpdated > (1.0/fps) * 1_000_000_000) {
+            println((1.0/fps) * 100_000_000)
             board = nextGeneration()
             lastUpdated = currentNanoTime
         }
 
-        // display crude fps counter
-        //val elapsedMs = elapsedNanos / 1_000_000
-        //if (elapsedMs != 0L) {
-        //    graphicsContext.fill = Color.WHITE
-        //    graphicsContext.fillText("${1000 / elapsedMs} fps", 10.0, 10.0)
-        //}
+        repaint()
+
     }
-
-
 
 }
