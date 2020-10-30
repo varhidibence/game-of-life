@@ -1,7 +1,6 @@
 package com.example
 
 import javafx.animation.AnimationTimer
-import javafx.animation.Timeline
 import javafx.application.Application
 import javafx.event.EventHandler
 import javafx.scene.Group
@@ -9,13 +8,10 @@ import javafx.scene.Scene
 import javafx.scene.canvas.Canvas
 import javafx.scene.canvas.GraphicsContext
 import javafx.scene.control.Button
-import javafx.scene.image.Image
-import javafx.scene.input.KeyCode
 import javafx.scene.layout.HBox
 import javafx.scene.paint.Color
 import javafx.stage.Stage
 import java.awt.Rectangle
-import java.util.*
 import kotlin.math.floor
 import kotlin.random.Random
 
@@ -44,8 +40,7 @@ class Game : Application() {
 
     private lateinit var timer: AnimationTimer
     private var running = false
-    private var lastFrameTime: Long = System.nanoTime()
-    private var lastUpdated = lastFrameTime
+    private var lastUpdated: Long = System.nanoTime()
     private val fps = 4
     private var initialSeed = 50
 
@@ -92,7 +87,7 @@ class Game : Application() {
         graphicsContext = canvas.graphicsContext2D
 
         // Initial drawing
-        drawBoard(startX, startY)
+        drawBoard()
         mainStage.show()
     }
 
@@ -105,7 +100,7 @@ class Game : Application() {
         }
     }
 
-    private fun drawBoard(startX: Double, startY: Double){
+    private fun drawBoard(){
 
         graphicsContext.stroke = Color.BLACK
         graphicsContext.fill = Color.BLACK
@@ -157,27 +152,27 @@ class Game : Application() {
     }
 
     private fun prepareActionHandlers() {
-        startButton.onAction = EventHandler { event ->
+        startButton.onAction = EventHandler {
             if (!running) {
                 timer.start()
                 running = true
             }
         }
-        stopButton.onAction = EventHandler { event ->
+        stopButton.onAction = EventHandler {
             if (running){
                 timer.stop()
                 running = false
             }
         }
 
-        resetButton.onAction = EventHandler { event ->
+        resetButton.onAction = EventHandler {
             running = false
             board = Array(BOARD_H){ IntArray(BOARD_W)}
             repaint()
             timer.stop()
         }
 
-        randButton.onAction = EventHandler { event ->
+        randButton.onAction = EventHandler {
             running = false
             board = Array(BOARD_H) { IntArray(BOARD_W) }
             randomize()
@@ -191,7 +186,7 @@ class Game : Application() {
                 if (area.contains(event.x, event.y)){
                     val colNth = floor((event.x - startX) / cellSize).toInt()
                     val rowNth = floor((event.y - startY) / cellSize).toInt()
-                    println("Mouse clicked: ${rowNth}, ${colNth}")
+                    println("Mouse clicked: $rowNth, $colNth")
                     if (rowNth >= 0 && rowNth < board.size && colNth >= 0 && colNth < board.size)
                         board[rowNth][colNth] = when (board[rowNth][colNth]){
                             0 -> 1
@@ -206,13 +201,10 @@ class Game : Application() {
     private fun repaint(){
         // clear canvas
         graphicsContext.clearRect(0.0, 0.0, WIDTH.toDouble(), HEIGHT.toDouble())
-        drawBoard(startX, startY)
+        drawBoard()
     }
 
     private fun tickAndRender(currentNanoTime: Long) {
-        // the time elapsed since the last frame, in nanoseconds
-        val elapsedNanos = currentNanoTime - lastFrameTime
-        lastFrameTime = currentNanoTime
 
         // perform board updates
         if (currentNanoTime - lastUpdated > (1.0/fps) * 1_000_000_000) {
