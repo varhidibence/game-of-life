@@ -25,6 +25,7 @@ class Game : Application() {
         private const val startX = 50.0
         private const val startY = 50.0
         private const val cellSize = 15.0
+        private const val fps = 4
 
     }
 
@@ -37,26 +38,44 @@ class Game : Application() {
     private lateinit var randButton: Button
 
     private var board = Array(BOARD_H){ IntArray(BOARD_W)}
+    private val area by lazy {
+        Rectangle(startX.toInt(), startY.toInt(), (board.size*cellSize).toInt(), (board.size*cellSize).toInt())
+    }
 
     private lateinit var timer: AnimationTimer
     private var running = false
     private var lastUpdated: Long = System.nanoTime()
-    private val fps = 4
+
     private var initialSeed = 50
 
     override fun start(mainStage: Stage) {
-        mainStage.title = "Game of Life"
 
-        val root = Group()
-        mainScene = Scene(root)
-        mainStage.scene = mainScene
-
-        val controlBox = HBox()
-        controlBox.spacing = 10.0
         startButton = Button("start")
         stopButton = Button("stop")
         resetButton = Button("reset")
         randButton = Button("randomize")
+
+        val controlBox = HBox().apply {
+            spacing = 10.0
+            children.apply {
+                add(startButton)
+                add(stopButton)
+                add(resetButton)
+                add(randButton)
+            }
+        }
+
+        val canvas = Canvas(WIDTH.toDouble(), HEIGHT.toDouble())
+        val root = Group().apply {
+            children.apply {
+                add(canvas)
+                add(controlBox)
+            }
+        }
+
+        mainScene = Scene(root)
+        mainStage.scene = mainScene
+        mainStage.title = "Game of Life"
 
          timer = object : AnimationTimer() {
             override fun handle(currentNanoTime: Long) {
@@ -64,24 +83,7 @@ class Game : Application() {
             }
         }
 
-
-        controlBox.children.add(startButton)
-        controlBox.children.add(stopButton)
-        controlBox.children.add(resetButton)
-        controlBox.children.add(randButton)
-
-        val canvas = Canvas(WIDTH.toDouble(), HEIGHT.toDouble())
-
-        root.children.add(canvas)
-        root.children.add(controlBox)
-
         randomize()
-
-        for (i in 2..2){
-            for (j in 1..3)
-                board[i][j] = 1
-        }
-
         prepareActionHandlers()
 
         graphicsContext = canvas.graphicsContext2D
@@ -92,10 +94,9 @@ class Game : Application() {
     }
 
     private fun randomize() {
-        val rand = Random(initialSeed++)
         for (row in 0 until board.size) {
             for (col in 0 until board[row].size) {
-                board[row][col] = (rand.nextInt() % 2)
+                board[row][col] = (Random(initialSeed++).nextInt() % 2)
             }
         }
     }
@@ -129,8 +130,7 @@ class Game : Application() {
                 var aliveNeighbours = 0
                 for (i in -1..1){
                     for (j in -1..1){
-                        val value = board[row + i][col + j]
-                        aliveNeighbours += value
+                        aliveNeighbours += board[row + i][col + j]
                     }
                 }
 
@@ -182,7 +182,7 @@ class Game : Application() {
 
         mainScene.onMouseClicked = EventHandler { event ->
             if (!running){
-                val area = Rectangle(startX.toInt(), startY.toInt(), (board.size*cellSize).toInt(), (board.size*cellSize).toInt())
+
                 if (area.contains(event.x, event.y)){
                     val colNth = floor((event.x - startX) / cellSize).toInt()
                     val rowNth = floor((event.y - startY) / cellSize).toInt()
@@ -208,7 +208,7 @@ class Game : Application() {
 
         // perform board updates
         if (currentNanoTime - lastUpdated > (1.0/fps) * 1_000_000_000) {
-            println((1.0/fps) * 100_000_000)
+            //println((1.0/fps) * 100_000_000)
             board = nextGeneration()
             lastUpdated = currentNanoTime
         }
